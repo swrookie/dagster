@@ -25,7 +25,7 @@ from dagster._core.definitions.declarative_automation.serialized_objects import 
     get_serializable_candidate_subset,
 )
 from dagster._core.definitions.partition import AllPartitionsSubset
-from dagster._core.definitions.time_window_partitions import BaseTimeWindowPartitionsSubset
+from dagster._core.definitions.time_window_partitions import TimeWindowPartitionsSubset
 from dagster._record import copy, record
 from dagster._serdes.serdes import is_whitelisted_for_serdes_object
 from dagster._time import get_current_timestamp
@@ -177,20 +177,42 @@ class AutomationCondition(ABC, Generic[T_EntityKey]):
             AndAutomationCondition,
         )
 
-        # group AndAutomationConditions together
-        if isinstance(self, AndAutomationCondition):
-            return AndAutomationCondition(operands=[*self.operands, other])
-        return AndAutomationCondition(operands=[self, other])
+        # Consolidate any unlabeled `AndAutomationCondition`s together.
+        return AndAutomationCondition(
+            operands=[
+                *(
+                    self.operands
+                    if isinstance(self, AndAutomationCondition) and self.label is None
+                    else (self,)
+                ),
+                *(
+                    other.operands
+                    if isinstance(other, AndAutomationCondition) and other.label is None
+                    else (other,)
+                ),
+            ]
+        )
 
     def __or__(
         self, other: "AutomationCondition[T_EntityKey]"
     ) -> "BuiltinAutomationCondition[T_EntityKey]":
         from dagster._core.definitions.declarative_automation.operators import OrAutomationCondition
 
-        # group OrAutomationConditions together
-        if isinstance(self, OrAutomationCondition):
-            return OrAutomationCondition(operands=[*self.operands, other])
-        return OrAutomationCondition(operands=[self, other])
+        # Consolidate any unlabeled `OrAutomationCondition`s together.
+        return OrAutomationCondition(
+            operands=[
+                *(
+                    self.operands
+                    if isinstance(self, OrAutomationCondition) and self.label is None
+                    else (self,)
+                ),
+                *(
+                    other.operands
+                    if isinstance(other, OrAutomationCondition) and other.label is None
+                    else (other,)
+                ),
+            ]
+        )
 
     def __invert__(self) -> "BuiltinAutomationCondition[T_EntityKey]":
         from dagster._core.definitions.declarative_automation.operators import (
@@ -814,7 +836,7 @@ def _compute_subset_value_str(subset: SerializableEntitySubset) -> str:
         return str(subset.value)
     elif isinstance(subset.value, AllPartitionsSubset):
         return AllPartitionsSubset.__name__
-    elif isinstance(subset.value, BaseTimeWindowPartitionsSubset):
+    elif isinstance(subset.value, TimeWindowPartitionsSubset):
         return str(
             [
                 (tw.start.timestamp(), tw.end.timestamp())

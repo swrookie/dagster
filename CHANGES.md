@@ -1,5 +1,109 @@
 # Changelog
 
+## 1.9.3 (core) / 0.25.3 (libraries)
+
+### New
+
+- Added `run_id` to the `run_tags` index to improve database performance. Run `dagster instance migrate` to update the index. (Thanks, [@HynekBlaha](https://github.com/HynekBlaha)!)
+- Added icons for `kind` tags: Cassandra, ClickHouse, CockroachDB, Doris, Druid, Elasticsearch, Flink, Hadoop, Impala, Kafka, MariaDB, MinIO, Pinot, Presto, Pulsar, RabbitMQ, Redis, Redpanda, ScyllaDB, Starrocks, and Superset. (Thanks, [@swrookie](https://github.com/swrookie)!)
+- Added a new icon for the Denodo kind tag. (Thanks, [@tintamarre](https://github.com/tintamarre)!)
+- Errors raised from defining more than one `Definitions` object at module scope now include the object names so that the source of the error is easier to determine.
+- [ui] Asset metadata entries like `dagster/row_count` now appear on the events page and are properly hidden on the overview page when they appear in the sidebar.
+- [dagster-aws] `PipesGlueClient` now attaches AWS Glue metadata to Dagster results produced during Pipes invocation.
+- [dagster-aws] `PipesEMRServerlessClient` now attaches AWS EMR Serverless metadata to Dagster results produced during Pipes invocation and adds Dagster tags to the job run.
+- [dagster-aws] `PipesECSClient` now attaches AWS ECS metadata to Dagster results produced during Pipes invocation and adds Dagster tags to the ECS task.
+- [dagster-aws] `PipesEMRClient` now attaches AWS EMR metadata to Dagster results produced during Pipes invocation.
+- [dagster-databricks] `PipesDatabricksClient` now attaches Databricks metadata to Dagster results produced during Pipes invocation and adds Dagster tags to the Databricks job.
+- [dagster-fivetran] Added `load_fivetran_asset_specs` function. It can be used with the `FivetranWorkspace` resource and `DagsterFivetranTranslator` translator to load your Fivetran connector tables as external assets in Dagster.
+- [dagster-looker] Errors are now handled more gracefully when parsing derived tables.
+- [dagster-sigma] Sigma assets now contain extra metadata and kind tags.
+- [dagster-sigma] Added support for direct workbook to warehouse table dependencies.
+- [dagster-sigma] Added `include_unused_datasets` field to `SigmaFilter` to disable pulling datasets that aren't used by a downstream workbook.
+- [dagster-sigma] Added `skip_fetch_column_data` option to skip loading Sigma column lineage. This can speed up loading large instances.
+- [dagster-sigma] Introduced an experimental `dagster-sigma snapshot` command, allowing Sigma workspaces to be captured to a file for faster subsequent loading.
+
+  ### Introducing: `dagster-airlift` (experimental)
+
+  `dagster-airlift` is coming out of stealth. See the initial Airlift RFC [here](https://github.com/dagster-io/dagster/discussions/25279), and the following documentation to learn more:
+
+  - A full [Airflow migration tutorial](https://docs.dagster.io/integrations/airlift/tutorial/overview).
+  - A tutorial on [federating between Airflow instances](https://docs.dagster.io/integrations/airlift/federation-tutorial/overview).
+
+  More Airflow-related content is coming soon! We'd love for you to check it out, and post any comments / questions in the `#airflow-migration` channel in the Dagster slack.
+
+### Bugfixes
+
+- Fixed a bug in run status sensors where setting incompatible arguments `monitor_all_code_locations` and `monitored_jobs` did not raise the expected error. (Thanks, [@apetryla](https://github.com/apetryla)!)
+- Fixed an issue that would cause the label for `AutomationCondition.any_deps_match()` and `AutomationCondition.all_deps_match()` to render incorrectly when `allow_selection` or `ignore_selection` were set.
+- Fixed a bug which could cause code location load errors when using `CacheableAssetsDefinitions` in code locations that contained `AutomationConditions`
+- Fixed an issue where the default multiprocess executor kept holding onto subprocesses after their step completed, potentially causing `Too many open files` errors for jobs with many steps.
+- [ui] Fixed an issue introduced in 1.9.2 where the backfill overview page would sometimes display extra assets that were targeted by the backfill.
+- [ui] Fixed "Open in Launchpad" button when testing a schedule or sensor by ensuring that it opens to the correct deployment.
+- [ui] Fixed an issue where switching a user setting was immediately saved, rather than waiting for the change to be confirmed.
+- [dagster-looker] Unions without unique/distinct criteria are now properly handled.
+- [dagster-powerbi] Fixed an issue where reports without an upstream dataset dependency would fail to translate to an asset spec.
+- [dagster-sigma] Fixed an issue where API fetches did not paginate properly.
+
+### Documentation
+
+- Added an [Airflow Federation Tutorial](https://docs.dagster.io/integrations/airlift/federation-tutorial/overview).
+- Added `dagster-dingtalk` to the list of [community supported libraries](https://docs.dagster.io/integrations#community-supported-libraries).
+- Fixed typos in the `dagster-wandb` (Weights and Biases) documentation. (Thanks, [@matt-weingarten](https://github.com/matt-weingarten)!)
+- Updated the [Role-based Access Control (RBAC)](https://docs.dagster.io/dagster-plus/account/managing-users/managing-user-roles-permissions) documentation.
+- Added additional information about filtering to the [`dagster-sigma`](https://docs.dagster.io/integrations/sigma) documentation.
+
+### Dagster Plus
+
+- [ui] Fixed an issue with filtering and catalog search in branch deployments.
+- [ui] Fixed an issue where the asset graph would reload unexpectedly.
+
+## 1.9.2 (core) / 0.25.2 (libraries)
+
+### New
+
+- Introduced a new constructor, `AssetOut.from_spec`, that will construct an `AssetOut` from an `AssetSpec`.
+- [ui] Column tags are now displayed in the `Column name` section of the asset overview page.
+- [ui] Introduced an icon for the `gcs` (Google Cloud Storage) kind tag.
+- [ui] Introduced icons for `report` and `semanticmodel` kind tags.
+- [ui] The tooltip for a tag containing a cron expression now shows a human-readable, timezone-aware cron string.
+- [ui] Asset check descriptions are now sourced from docstrings and rendered in the UI. (Thanks, [@marijncv](https://github.com/marijncv)!)
+- [dagster-aws] Added option to propagate tags to ECS tasks when using the `EcsRunLauncher`. (Thanks, [@zyd14](https://github.com/zyd14)!)
+- [dagster-dbt] You can now implement `DagsterDbtTranslator.get_code_version` to customize the code version for your dbt assets. (Thanks, [@Grzyblon](https://github.com/Grzyblon)!)
+- [dagster-pipes] Added the ability to pass arbitrary metadata to `PipesClientCompletedInvocation`. This metadata will be attached to all materializations and asset checks stored during the pipes invocation.
+- [dagster-powerbi] During a full workspace scan, owner and column metadata is now automatically attached to assets.
+
+### Bugfixes
+
+- Fixed an issue with `AutomationCondition.execution_in_progress` which would cause it to evaluate to `True` for unpartitioned assets that were part of a run that was in progress, even if the asset itself had already been materialized.
+- Fixed an issue with `AutomationCondition.run_in_progress` that would cause it to ignore queued runs.
+- Fixed an issue that would cause a `default_automation_condition_sensor` to be constructed for user code servers running on dagster version `< 1.9.0` even if the legacy `auto_materialize: use_sensors` configuration setting was set to `False`.
+- [ui] Fixed an issue when executing asset checks where the wrong job name was used in some situations. The correct job name is now used.
+- [ui] Selecting assets with 100k+ partitions no longer causes the asset graph to temporarily freeze.
+- [ui] Fixed an issue that could cause a GraphQL error on certain pages after removing an asset.
+- [ui] The asset events page no longer truncates event history in cases where both materialization and observation events are present.
+- [ui] The backfill coordinator logs tab no longer sits in a loading state when no logs are available to display.
+- [ui] Fixed issue which would cause the "Partitions evaluated" label on an asset's automation history page to incorrectly display `0` in cases where all partitions were evaluated.
+- [ui] Fix "Open in Playground" link when testing a schedule or sensor by ensuring that it opens to the correct deployment.
+- [ui] Fixed an issue where the asset graph would reload unexpectedly.
+- [dagster-dbt] Fixed an issue where the SQL filepath for a dbt model was incorrectly resolved when the dbt manifest file was built on a Windows machine, but executed on a Unix machine.
+- [dagster-pipes] Asset keys containing embedded `/` characters now work correctly with Dagster Pipes.
+
+### Documentation
+
+- Community-hosted integrations are now listed on the [Integrations](https://docs.dagster.io/integrations) page.
+- Added a [tutorial](https://docs.dagster.io/integrations/airlift/tutorial/overview), [reference page](https://docs.dagster.io/integrations/airlift/reference) and [API docs](https://docs.dagster.io/_apidocs/libraries/dagster-airlift) for `dagster-airlift`.
+- Fixed a typo in the label for superseded APIs. (Thanks, [@matt-weingarten](https://github.com/matt-weingarten)!)
+
+### Deprecations
+
+- The `types-sqlalchemy` package is no longer included in the `dagster[pyright]` extra package.
+
+### Dagster Plus
+
+- [ui] The Environment Variables table can now be sorted by name and update time.
+- [ui] The code location configuration dialog now contains more metadata about the code location.
+- [ui] Fixed an issue where the incorrect user icons were shown in the Users table when a search filter had been applied.
+
 ## 1.9.1 (core) / 0.25.1 (libraries)
 
 ### New

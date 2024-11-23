@@ -46,6 +46,7 @@ from dagster._core.definitions.asset_selection import (
 from dagster._core.definitions.assets import AssetsDefinition
 from dagster._core.definitions.base_asset_graph import BaseAssetGraph
 from dagster._core.definitions.events import AssetKey
+from dagster._core.selector.subset_selector import MAX_NUM
 from dagster._serdes import deserialize_value
 from dagster._serdes.serdes import _WHITELIST_MAP
 from typing_extensions import TypeAlias
@@ -170,13 +171,13 @@ def test_asset_selection_groups(all_assets: _AssetList):
 def test_asset_selection_keys(all_assets: _AssetList):
     sel = AssetSelection.keys(AssetKey("alice"), AssetKey("bob"))
     assert sel.resolve(all_assets) == _asset_keys_of({alice, bob})
-    assert str(sel) == "alice or bob"
+    assert str(sel) == 'key:"alice" or key:"bob"'
 
     sel = AssetSelection.keys("alice", "bob")
     assert sel.resolve(all_assets) == _asset_keys_of({alice, bob})
 
     sel = AssetSelection.keys("alice", "bob", "carol", "dave")
-    assert str(sel) == "4 assets"
+    assert str(sel) == 'key:"alice" or key:"bob" or key:"carol" or key:"dave"'
 
     sel = AssetSelection.keys("animals/zebra")
     assert sel.resolve(all_assets) == _asset_keys_of({zebra})
@@ -195,6 +196,22 @@ def test_asset_selection_key_prefixes(all_assets: _AssetList):
 
     # includes source assets if flag set
     sel = AssetSelection.key_prefixes("celestial", include_sources=True)
+    assert sel.resolve(all_assets) == {earth.key}
+
+
+def test_asset_selection_key_substring(all_assets: _AssetList):
+    sel = AssetSelection.key_substring("alice")
+    assert sel.resolve(all_assets) == _asset_keys_of({alice})
+
+    sel = AssetSelection.key_substring("ls/ze")
+    assert sel.resolve(all_assets) == _asset_keys_of({zebra})
+
+    # does not include source assets by default
+    sel = AssetSelection.key_substring("celestial")
+    assert sel.resolve(all_assets) == set()
+
+    # includes source assets if flag set
+    sel = AssetSelection.key_substring("celestial/e", include_sources=True)
     assert sel.resolve(all_assets) == {earth.key}
 
 
@@ -683,51 +700,19 @@ def test_to_serializable_asset_selection():
 
 
 def test_to_string_basic():
-    assert str(AssetSelection.assets("foo")) == "foo"
-    assert str(AssetSelection.assets(AssetKey(["foo", "bar"]))) == "foo/bar"
-    assert str(AssetSelection.assets("foo", "bar")) == "foo or bar"
-    assert str(AssetSelection.assets(AssetKey(["foo", "bar"]), AssetKey("baz"))) == "foo/bar or baz"
-
-    assert str(AssetSelection.all()) == "all materializable assets"
+    assert str(AssetSelection.assets("foo")) == 'key:"foo"'
+    assert str(AssetSelection.assets(AssetKey(["foo", "bar"]))) == 'key:"foo/bar"'
+    assert str(AssetSelection.assets("foo", "bar")) == 'key:"foo" or key:"bar"'
     assert (
-        str(AssetSelection.all(include_sources=True))
-        == "all materializable assets and source assets"
-    )
-    assert str(AssetSelection.all_asset_checks()) == "all asset checks"
-
-    assert str(AssetSelection.groups("marketing")) == "group:marketing"
-    assert str(AssetSelection.groups("marketing", "finance")) == "group:(marketing or finance)"
-
-    assert str(AssetSelection.key_prefixes("marketing")) == "key_prefix:marketing"
-    assert str(AssetSelection.key_prefixes(["foo", "bar"])) == "key_prefix:foo/bar"
-    assert (
-        str(AssetSelection.key_prefixes("marketing", ["foo", "bar"]))
-        == "key_prefix:(marketing or foo/bar)"
-    )
-    assert (
-        str(AssetSelection.checks(AssetCheckKey(AssetKey("foo"), "bar"))) == "asset_check:foo:bar"
-    )
-    assert (
-        str(
-            AssetSelection.checks(
-                AssetCheckKey(AssetKey("foo"), "bar"), AssetCheckKey(AssetKey("baz"), "qux")
-            )
-        )
-        == "asset_check:(foo:bar or baz:qux)"
+        str(AssetSelection.assets(AssetKey(["foo", "bar"]), AssetKey("baz")))
+        == 'key:"foo/bar" or key:"baz"'
     )
 
-    assert (
-        str(
-            AssetChecksForAssetKeysSelection(
-                selected_asset_keys=[AssetKey("foo"), AssetKey("bar"), AssetKey("baz")]
-            )
-        )
-        == "asset_check:(foo or bar or baz)"
-    )
+    assert str(AssetSelection.all()) == "*"
 
+    assert str(AssetSelection.groups("marketing")) == 'group:"marketing"'
     assert (
-        str(AssetChecksForAssetKeysSelection(selected_asset_keys=[AssetKey("foo")]))
-        == "asset_check:foo"
+        str(AssetSelection.groups("marketing", "finance")) == 'group:"marketing" or group:"finance"'
     )
 
 
@@ -735,45 +720,45 @@ def test_to_string_binary_operators():
     foo_bar = AssetSelection.assets(AssetKey(["foo", "bar"]))
     baz = AssetSelection.assets("baz")
     bork = AssetSelection.assets("bork")
-    assert str(foo_bar | baz) == "foo/bar or baz"
-    assert str(foo_bar & baz) == "foo/bar and baz"
-    assert str(foo_bar - baz) == "foo/bar - baz"
+    assert str(foo_bar | baz) == 'key:"foo/bar" or key:"baz"'
+    assert str(foo_bar & baz) == 'key:"foo/bar" and key:"baz"'
+    assert str(foo_bar - baz) == 'key:"foo/bar" and not key:"baz"'
 
-    assert str(foo_bar | baz | bork) == "foo/bar or baz or bork"
-    assert str(foo_bar & baz & bork) == "foo/bar and baz and bork"
+    assert str(foo_bar | baz | bork) == 'key:"foo/bar" or key:"baz" or key:"bork"'
+    assert str(foo_bar & baz & bork) == 'key:"foo/bar" and key:"baz" and key:"bork"'
 
-    assert str((foo_bar | baz) | bork) == "foo/bar or baz or bork"
-    assert str(foo_bar | (baz | bork)) == "foo/bar or baz or bork"
-    assert str((foo_bar & baz) & bork) == "foo/bar and baz and bork"
-    assert str(foo_bar & (baz & bork)) == "foo/bar and baz and bork"
+    assert str((foo_bar | baz) | bork) == 'key:"foo/bar" or key:"baz" or key:"bork"'
+    assert str(foo_bar | (baz | bork)) == 'key:"foo/bar" or key:"baz" or key:"bork"'
+    assert str((foo_bar & baz) & bork) == 'key:"foo/bar" and key:"baz" and key:"bork"'
+    assert str(foo_bar & (baz & bork)) == 'key:"foo/bar" and key:"baz" and key:"bork"'
 
-    assert str(foo_bar | (baz & bork)) == "foo/bar or (baz and bork)"
-    assert str(foo_bar & (baz | bork)) == "foo/bar and (baz or bork)"
+    assert str(foo_bar | (baz & bork)) == 'key:"foo/bar" or (key:"baz" and key:"bork")'
+    assert str(foo_bar & (baz | bork)) == 'key:"foo/bar" and (key:"baz" or key:"bork")'
 
-    assert str(foo_bar - baz - bork) == "(foo/bar - baz) - bork"
-    assert str((foo_bar - baz) - bork) == "(foo/bar - baz) - bork"
-    assert str(foo_bar - (baz - bork)) == "foo/bar - (baz - bork)"
+    assert str(foo_bar - baz - bork) == '(key:"foo/bar" and not key:"baz") and not key:"bork"'
+    assert str((foo_bar - baz) - bork) == '(key:"foo/bar" and not key:"baz") and not key:"bork"'
+    assert str(foo_bar - (baz - bork)) == 'key:"foo/bar" and not (key:"baz" and not key:"bork")'
 
     assert (
         str(AssetSelection.assets("foo/bar", "baz") & AssetSelection.assets("bork"))
-        == "(foo/bar or baz) and bork"
+        == '(key:"foo/bar" or key:"baz") and key:"bork"'
     )
     assert (
         str(AssetSelection.assets("bork") & AssetSelection.assets("foo/bar", "baz"))
-        == "bork and (foo/bar or baz)"
+        == 'key:"bork" and (key:"foo/bar" or key:"baz")'
     )
     assert (
         str(AssetSelection.assets("foo/bar", "baz") | AssetSelection.assets("bork"))
-        == "(foo/bar or baz) or bork"
+        == '(key:"foo/bar" or key:"baz") or key:"bork"'
     )
     assert (
         str(AssetSelection.assets("bork") | AssetSelection.assets("foo/bar", "baz"))
-        == "bork or (foo/bar or baz)"
+        == 'key:"bork" or (key:"foo/bar" or key:"baz")'
     )
 
     assert (
         str(AssetSelection.groups("foo", "bar") & AssetSelection.groups("baz", "bork"))
-        == "group:(foo or bar) and group:(baz or bork)"
+        == '(group:"foo" or group:"bar") and (group:"baz" or group:"bork")'
     )
 
 
@@ -788,7 +773,33 @@ def test_deserialize_old_all_asset_selection():
     assert not new_unserialized_value.include_sources
 
 
-def test_from_string_tag():
+def test_from_string():
+    assert AssetSelection.from_string("*") == AssetSelection.all(include_sources=False)
+    assert AssetSelection.from_string("my_asset") == AssetSelection.assets("my_asset")
+    assert AssetSelection.from_string("*my_asset") == AssetSelection.assets("my_asset").upstream(
+        depth=MAX_NUM, include_self=True
+    )
+    assert AssetSelection.from_string("+my_asset") == AssetSelection.assets("my_asset").upstream(
+        depth=1, include_self=True
+    )
+    assert AssetSelection.from_string("++my_asset") == AssetSelection.assets("my_asset").upstream(
+        depth=2, include_self=True
+    )
+    assert AssetSelection.from_string("my_asset*") == AssetSelection.assets("my_asset").downstream(
+        depth=MAX_NUM, include_self=True
+    )
+    assert AssetSelection.from_string("my_asset+") == AssetSelection.assets("my_asset").downstream(
+        depth=1, include_self=True
+    )
+    assert AssetSelection.from_string("my_asset++") == AssetSelection.assets("my_asset").downstream(
+        depth=2, include_self=True
+    )
+    assert AssetSelection.from_string("+my_asset+") == AssetSelection.assets("my_asset").downstream(
+        depth=1, include_self=True
+    ) | AssetSelection.assets("my_asset").upstream(depth=1, include_self=True)
+    assert AssetSelection.from_string("*my_asset*") == AssetSelection.assets("my_asset").downstream(
+        depth=MAX_NUM, include_self=True
+    ) | AssetSelection.assets("my_asset").upstream(depth=MAX_NUM, include_self=True)
     assert AssetSelection.from_string("tag:foo=bar") == AssetSelection.tag("foo", "bar")
     assert AssetSelection.from_string("tag:foo") == AssetSelection.tag("foo", "")
 

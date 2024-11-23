@@ -3811,6 +3811,8 @@ __metadata:
     "@vx/shape": "npm:^0.0.192"
     amator: "npm:^1.1.0"
     ansi-to-react: "npm:^5.1.0"
+    antlr4ts: "npm:0.5.0-alpha.4"
+    antlr4ts-cli: "npm:0.5.0-alpha.4"
     babel-jest: "npm:^29.7.0"
     babel-loader: "npm:9.1.2"
     babel-plugin-graphql-tag: "npm:^3.3.0"
@@ -8700,6 +8702,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"antlr4ts-cli@npm:0.5.0-alpha.4":
+  version: 0.5.0-alpha.4
+  resolution: "antlr4ts-cli@npm:0.5.0-alpha.4"
+  bin:
+    antlr4ts: ./antlr4ts
+  checksum: 10/ca8cbf6df44081c9dd1ec9bf129adc042e345bc39e817a7c33d5a0cbd45be24f29419135522762a0e77f0be95e970483ab5679c7d94838772457df759fc7627a
+  languageName: node
+  linkType: hard
+
+"antlr4ts@npm:0.5.0-alpha.4":
+  version: 0.5.0-alpha.4
+  resolution: "antlr4ts@npm:0.5.0-alpha.4"
+  checksum: 10/d572047607e5dcbae1ee1f33f604cf2769fe279cb52d850c86a09548d55c97704055033afe5e0b91c33488ba73377a755fafcb50d106993a9323f746ca2dd187
+  languageName: node
+  linkType: hard
+
 "anymatch@npm:^3.0.3, anymatch@npm:~3.1.2":
   version: 3.1.3
   resolution: "anymatch@npm:3.1.3"
@@ -10870,13 +10888,13 @@ __metadata:
   linkType: hard
 
 "cross-spawn@npm:^7.0.0, cross-spawn@npm:^7.0.2, cross-spawn@npm:^7.0.3":
-  version: 7.0.3
-  resolution: "cross-spawn@npm:7.0.3"
+  version: 7.0.6
+  resolution: "cross-spawn@npm:7.0.6"
   dependencies:
     path-key: "npm:^3.1.0"
     shebang-command: "npm:^2.0.0"
     which: "npm:^2.0.1"
-  checksum: 10/e1a13869d2f57d974de0d9ef7acbf69dc6937db20b918525a01dacb5032129bd552d290d886d981e99f1b624cb03657084cc87bd40f115c07ecf376821c729ce
+  checksum: 10/0d52657d7ae36eb130999dffff1168ec348687b48dd38e2ff59992ed916c88d328cf1d07ff4a4a10bc78de5e1c23f04b306d569e42f7a2293915c081e4dfee86
   languageName: node
   linkType: hard
 

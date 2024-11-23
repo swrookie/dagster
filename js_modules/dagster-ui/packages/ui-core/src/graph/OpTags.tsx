@@ -43,6 +43,7 @@ import datadog from './kindtag-images/tool-datadog-color.svg';
 import datahub from './kindtag-images/tool-datahub-color.svg';
 import dbt from './kindtag-images/tool-dbt-color.svg';
 import delta_lake from './kindtag-images/tool-deltalake-color.svg';
+import denodo from './kindtag-images/tool-denodo-color.svg';
 import discord from './kindtag-images/tool-discord-color.svg';
 import dlthub from './kindtag-images/tool-dlthub-color.svg';
 import docker from './kindtag-images/tool-docker-color.svg';
@@ -221,6 +222,8 @@ export type KnownTagType =
   | 'wandb'
   | 'databricks'
   | 'airflow'
+  | 'dataset'
+  | 'workbook'
   | 'airliftmapped'
   | 'airtable'
   | 'omni'
@@ -268,6 +271,7 @@ export type KnownTagType =
   | 'rust'
   | 'pytorchlightning'
   | 'deltalake'
+  | 'denodo'
   | 'parquet'
   | 'lightgbm'
   | 'xgboost'
@@ -676,6 +680,10 @@ export const KNOWN_TAGS: Record<KnownTagType, KnownTag> = {
     icon: delta_lake,
     content: 'Delta Lake',
   },
+  denodo: {
+    icon: denodo,
+    content: 'Denodo',
+  },
   parquet: {
     icon: parquet,
     content: 'Parquet',
@@ -1066,6 +1074,16 @@ export const KNOWN_TAGS: Record<KnownTagType, KnownTag> = {
   semanticmodel: {
     icon: table,
     content: 'Semantic Model',
+    blackAndWhite: true,
+  },
+  dataset: {
+    icon: table,
+    content: 'Dataset',
+    blackAndWhite: true,
+  },
+  workbook: {
+    icon: dashboard,
+    content: 'Workbook',
     blackAndWhite: true,
   },
   report: {
